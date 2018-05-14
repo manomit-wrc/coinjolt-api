@@ -2,8 +2,9 @@ const jwt = require('jsonwebtoken');
 const keys = require('../config/keys');
 const bCrypt = require('bcrypt-nodejs');
 const dateFormat = require('dateformat');
+const Op = require('sequelize').Op;
 
-module.exports = (app, passport, User, AWS) => {
+module.exports = (app, passport, User, Currency, Deposit, AWS) => {
     app.post('/api/user/login', (req, res) => {
         const email = req.body.email;
         const password = req.body.password;
@@ -188,4 +189,78 @@ module.exports = (app, passport, User, AWS) => {
                 return res.status(500).json({ success: false, message: 'Please try again'});
             });
     });
+
+    //change password//
+    app.post('/api/user/change-password', passport.authenticate('jwt', { session: false }), (req,res) => {
+        if (bCrypt.compareSync(req.body.old_password, req.user.password)) {
+            const password = bCrypt.hashSync(req.body.new_password);
+            User.update({
+                password: password
+            }, {
+                where: {
+                    id: req.user.id
+                }
+            }).then(function (result) {
+                res.json({
+                    success: true,
+                    message: 'Password updated successfully.'
+                });
+            }).catch(function (err) {
+
+                console.log(err);
+            });
+        } else {
+            res.json({
+                success: false,
+                message: 'Old password doesn\'t matched'
+            });
+        }
+    });
+
+    //most recent activity
+    app.post('/api/user/most-recent-activity', passport.authenticate('jwt', { session: false }), async (req,res) => {
+        var values = '';
+        var buy_history = '';
+        
+        function notOnlyALogger(msg){
+            console.log('****log****');
+            console.log(msg);
+        }
+
+        Deposit.belongsTo(Currency,{foreignKey: 'currency_id'});
+        let currencyCodes = await Deposit.findAll(
+        { 
+            where: {
+                user_id: req.user.id,
+                type: {
+                    [Op.or]: [1, 2]
+                }
+            },
+            limit: 5,
+            order: [
+                ['createdAt', 'DESC']
+            ],
+            //logging: notOnlyALogger,
+            include: [{ 
+                model: Currency, required: true
+                
+            }] 
+        }); 
+        values = await Currency.findAll({
+            attributes: ['alt_name','currency_id']
+        });
+
+        if(currencyCodes.length > 0){
+            res.json({
+                success: true,
+                message: currencyCodes
+            });
+        }else{
+            res.json({
+                success: false,
+                message: 'No records found.'
+            });
+        }        
+    });
+
 };
