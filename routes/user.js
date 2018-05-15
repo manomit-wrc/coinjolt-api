@@ -4,7 +4,7 @@ const bCrypt = require('bcrypt-nodejs');
 const dateFormat = require('dateformat');
 const Op = require('sequelize').Op;
 
-module.exports = (app, passport, User, Currency, Deposit, AWS) => {
+module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS) => {
     app.post('/api/user/login', (req, res) => {
         const email = req.body.email;
         const password = req.body.password;
@@ -221,15 +221,11 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
     app.post('/api/user/most-recent-activity', passport.authenticate('jwt', { session: false }), async (req,res) => {
         var values = '';
         var buy_history = '';
-        
-        function notOnlyALogger(msg){
-            console.log('****log****');
-            console.log(msg);
-        }
 
         Deposit.belongsTo(Currency,{foreignKey: 'currency_id'});
         let currencyCodes = await Deposit.findAll(
         { 
+            attributes: { exclude: ['credit_card_no','card_expmonth','card_expyear','cvv'] },
             where: {
                 user_id: req.user.id,
                 type: {
@@ -261,6 +257,22 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
                 message: 'No records found.'
             });
         }        
+    });
+
+    //coinwise balance
+    app.post('/api/user/coinwise-balance', passport.authenticate('jwt',{session: false}), (req,res) => {
+        currency_balance.belongsTo(Currency,{foreignKey: 'currency_id'});
+
+        currency_balance.findById(req.user.id,{
+        }).then(result => {
+            res.json({
+                code: "200",
+                message: result
+            });
+
+        }).catch(err => {
+            return res.status(500).json({ success: false, message: 'Please try again'});
+        });
     });
 
 };
