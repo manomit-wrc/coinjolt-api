@@ -277,40 +277,12 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
 
         var i;
         for (i=0; i<=currencyBalance.length; i++) {
-            console.log(currencyBalance[i].Currency.currency_id);
-            // return false;
-            // http({
-            //     method  : 'GET',
-            //     url     : "https://coincap.io/page/"+currencyBalance[i].Currency.currency_id,
-            //     crossDomain: true,
-            //     dataType: 'json',
-            //     success: function (resp) {
-            //         console.log(resp);
-            //         return false;
-            //         // usdPrice = parseFloat({{this.balance}} * resp.price_usd).toFixed(2);
-            //     },
-            //     error: function (xhr) {
-            //     }
-            // });
-
-            // request.get("https://coincap.io/page/"+currencyBalance[i].Currency.currency_id, (res) => {
-            //     console.log(res);
-            // });
-
-            // request.get("https://coincap.io/page/"+currencyBalance[i].Currency.currency_id).on('response', function(response) {
-            //     res.json({
-            //         code: "200",
-            //         message: response
-            //     });
-            // });
-            console.log("https://coincap.io/page/"+currencyBalance[i].Currency.currency_id);
+            var balance = currencyBalance[i].balance;
             request("https://coincap.io/page/"+currencyBalance[i].Currency.currency_id, function (error, response, body) {
                 let data = JSON.parse(body);
-                console.log(data.price_usd);
+                var usdPrice = parseFloat(balance * data.price_usd).toFixed(2);
+                currencyBalance[i].usd_price = usdPrice;
             });
-
-            return false;
-
         }
 
         res.json({
