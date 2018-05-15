@@ -303,19 +303,10 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             //         message: response
             //     });
             // });
-
-            https.get("https://coincap.io/page/"+currencyBalance[i].Currency.currency_id, (res) => {
-
-                res.on('data', (d) => {
-                    var result = process.stdout.write(d);
-                    // res.json({
-                    //     code: "200",
-                    //     message: result
-                    // });
-                });
-
-            }).on('error', (e) => {
-              console.error(e);
+            console.log("https://coincap.io/page/"+currencyBalance[i].Currency.currency_id);
+            request("https://coincap.io/page/"+currencyBalance[i].Currency.currency_id, function (error, response, body) {
+                let data = JSON.parse(body);
+                console.log(data.price_usd);
             });
 
             return false;
