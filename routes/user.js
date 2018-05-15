@@ -15,7 +15,7 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
             }
         }).then(user => {
             if(!user) {
-                return res.status(404).json({ success: false, message: 'User not found' });   
+                return res.status(404).json({ code: "404", message: 'User not found' });   
             }
 
             if(bCrypt.compareSync(password, user.password)) {
@@ -26,18 +26,18 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
                     { expiresIn: 3600 },
                     (err, token) => {
                       res.json({
-                        success: true,
+                        code: "200",
                         token: 'Bearer ' + token
                       });
                     }
                 );
             }
             else {
-                return res.status(404).json({ success: false, message: 'Password incorrect' });
+                return res.status(404).json({ code: "404", message: 'Password incorrect' });
             }
         }).catch(err => {
             console.log(err);
-            return res.status(500).json({ success: false, message: 'Please try again'});
+            return res.status(500).json({ code: "404", message: 'Please try again'});
         });
     });
 
@@ -52,7 +52,7 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
         }).then(user => {
 
             if(!user) {
-                return res.status(404).json({ success: false, message: 'Email not found' });
+                return res.status(404).json({ code: "404", message: 'Email not found' });
             }
             else {
                 User.update(
@@ -80,7 +80,7 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
                     }, function(err, data) {
                         console.log(err);
                         res.json({
-                            success: true,
+                            code: "200",
                             message: 'An OTP has been sent to your email.'
                         });
                     });
@@ -89,7 +89,7 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
 
         }).catch(err => {
             res.json({
-                success: false,
+                code: "404",
                 message: 'Please try again'
             });
         });
@@ -107,13 +107,13 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
         }).then(user => {
             if(user) {
                 res.json({
-                    success: true,
+                    code: "200",
                     message: 'OTP verified successfully'
                 });
             }
             else {
                 res.json({
-                    success: false,
+                    code: "404",
                     message: 'Incorrect OTP'
                 });
             }
@@ -131,7 +131,7 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
             }
         ).then(user => {
             res.json({
-                success: true,
+                code: "200",
                 message: 'Password updated successfully'
             });
         });
@@ -145,7 +145,7 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
         }).then(user => {
             if(user) {
                 res.json({
-                    success: false,
+                    code: "404",
                     message: 'Email already exists'
                 }); 
             }
@@ -166,7 +166,7 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
                         { expiresIn: 3600 },
                         (err, token) => {
                             res.json({
-                                success: true,
+                                code: "200",
                                 token: 'Bearer ' + token
                             });
                         }
@@ -182,11 +182,11 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
         }).then(user => {
                 //user.dob = dateFormat(user.dob, "dd-mm-yyyy");
                 res.json({
-                    success: true,
+                    code: "200",
                     user: user
                 });
             }).catch(err => {
-                return res.status(500).json({ success: false, message: 'Please try again'});
+                return res.status(500).json({ code: "404", message: 'Please try again'});
             });
     });
 
@@ -202,7 +202,7 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
                 }
             }).then(function (result) {
                 res.json({
-                    success: true,
+                    code: "200",
                     message: 'Password updated successfully.'
                 });
             }).catch(function (err) {
@@ -211,7 +211,7 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
             });
         } else {
             res.json({
-                success: false,
+                code: "404",
                 message: 'Old password doesn\'t matched'
             });
         }
@@ -252,12 +252,12 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
 
         if(currencyCodes.length > 0){
             res.json({
-                success: true,
+                code: "200",
                 message: currencyCodes
             });
         }else{
             res.json({
-                success: false,
+                code: "404",
                 message: 'No records found.'
             });
         }        
