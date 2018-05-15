@@ -3,8 +3,10 @@ const keys = require('../config/keys');
 const bCrypt = require('bcrypt-nodejs');
 const dateFormat = require('dateformat');
 const Op = require('sequelize').Op;
+const https = require('https');
+const request = require('request');
 
-module.exports = (app, passport, User, Currency, Deposit, AWS) => {
+module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS) => {
     app.post('/api/user/login', (req, res) => {
         const email = req.body.email;
         const password = req.body.password;
@@ -221,15 +223,11 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
     app.post('/api/user/most-recent-activity', passport.authenticate('jwt', { session: false }), async (req,res) => {
         var values = '';
         var buy_history = '';
-        
-        function notOnlyALogger(msg){
-            console.log('****log****');
-            console.log(msg);
-        }
 
         Deposit.belongsTo(Currency,{foreignKey: 'currency_id'});
         let currencyCodes = await Deposit.findAll(
         { 
+            attributes: { exclude: ['credit_card_no','card_expmonth','card_expyear','cvv'] },
             where: {
                 user_id: req.user.id,
                 type: {
@@ -261,6 +259,73 @@ module.exports = (app, passport, User, Currency, Deposit, AWS) => {
                 message: 'No records found.'
             });
         }        
+    });
+
+    //coinwise balance
+    app.post('/api/user/coinwise-balance', passport.authenticate('jwt',{session: false}), async (req,res) => {
+        currency_balance.belongsTo(Currency,{foreignKey: 'currency_id'});
+
+        var currencyBalance = await currency_balance.findAll({
+            where:{
+                user_id: req.user.id
+            },
+            include: [{
+                model: Currency
+            }]
+
+        });
+
+        var i;
+        for (i=0; i<=currencyBalance.length; i++) {
+            console.log(currencyBalance[i].Currency.currency_id);
+            // return false;
+            // http({
+            //     method  : 'GET',
+            //     url     : "https://coincap.io/page/"+currencyBalance[i].Currency.currency_id,
+            //     crossDomain: true,
+            //     dataType: 'json',
+            //     success: function (resp) {
+            //         console.log(resp);
+            //         return false;
+            //         // usdPrice = parseFloat({{this.balance}} * resp.price_usd).toFixed(2);
+            //     },
+            //     error: function (xhr) {
+            //     }
+            // });
+
+            // request.get("https://coincap.io/page/"+currencyBalance[i].Currency.currency_id, (res) => {
+            //     console.log(res);
+            // });
+
+            // request.get("https://coincap.io/page/"+currencyBalance[i].Currency.currency_id).on('response', function(response) {
+            //     res.json({
+            //         code: "200",
+            //         message: response
+            //     });
+            // });
+
+            https.get("https://coincap.io/page/"+currencyBalance[i].Currency.currency_id, (res) => {
+
+                res.on('data', (d) => {
+                    var result = process.stdout.write(d);
+                    // res.json({
+                    //     code: "200",
+                    //     message: result
+                    // });
+                });
+
+            }).on('error', (e) => {
+              console.error(e);
+            });
+
+            return false;
+
+        }
+
+        res.json({
+            code: "200",
+            message: currencyBalance
+        });
     });
 
 };

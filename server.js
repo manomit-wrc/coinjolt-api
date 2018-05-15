@@ -193,7 +193,7 @@ app.use(passport.initialize());
 
 require('./config/passport')(passport, models.User);
 
-require('./routes/user')(app, passport, models.User, models.Currency, models.Deposit, AWS);
+require('./routes/user')(app, passport, models.User, models.Currency, models.Deposit, models.currency_balance, AWS);
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
