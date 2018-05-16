@@ -251,6 +251,16 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             attributes: ['alt_name','currency_id']
         });
 
+        for(var i = 0; i<currencyCodes.length; i++){
+            var type = currencyCodes[i].type;
+            if(type == 1){
+                currencyCodes[i].type = 'Buy';
+            }else if (type == 2){
+                currencyCodes[i].type = 'Sell';
+            }
+
+        }
+
         if(currencyCodes.length > 0){
             res.json({
                 code: "200",
