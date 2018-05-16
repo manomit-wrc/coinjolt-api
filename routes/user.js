@@ -231,6 +231,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             attributes: { exclude: ['credit_card_no','card_expmonth','card_expyear','cvv'] },
             where: {
                 user_id: req.user.id,
+                currency_id: req.body.currency_id,
                 type: {
                     [Op.or]: [1, 2]
                 }
@@ -252,7 +253,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         if(currencyCodes.length > 0){
             res.json({
                 code: "200",
-                message: currencyCodes
+                data: currencyCodes
             });
         }else{
             res.json({
