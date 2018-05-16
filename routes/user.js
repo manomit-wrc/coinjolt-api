@@ -4,7 +4,8 @@ const bCrypt = require('bcrypt-nodejs');
 const dateFormat = require('dateformat');
 const Op = require('sequelize').Op;
 const https = require('https');
-const request = require('request');
+var request = require('sync-request');
+const lodash = require('lodash');
 
 module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS) => {
     app.post('/api/user/login', (req, res) => {
@@ -275,19 +276,38 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
 
         });
 
-        var i;
-        for (i=0; i<=currencyBalance.length; i++) {
-            var balance = currencyBalance[i].balance;
-            request("https://coincap.io/page/"+currencyBalance[i].Currency.currency_id, function (error, response, body) {
-                let data = JSON.parse(body);
-                var usdPrice = parseFloat(balance * data.price_usd).toFixed(2);
-                currencyBalance[i].usd_price = usdPrice;
+        var usdPrice = 0, balance = 0, coin_rate = 0;
+        var currencyArr = [];
+        var response_image = request('GET','https://www.cryptocompare.com/api/data/coinlist/');
+        let data_for_image = JSON.parse(response_image.body);
+        for (var i = 0; i < currencyBalance.length; i++) {
+            balance = currencyBalance[i].balance;
+            var response =request('GET','https://coincap.io/page/'+currencyBalance[i].Currency.currency_id);
+            let data = JSON.parse(response.body);
+            coin_rate = data.price_usd;
+            usdPrice = (parseFloat(coin_rate) * parseFloat(balance)).toFixed(2);
+            currencyBalance[i].Currency.usdPrice = usdPrice;
+
+            //GET IMAGE LINK FROM API           
+            var image_code = currencyBalance[i].Currency.currency_id;           
+            var tempArr = lodash.filter(data_for_image.Data, (x) => x.Name === image_code);            
+            //END
+
+            currencyArr.push({
+               usdPrice: usdPrice.toString(),
+               balance: balance,
+               id: currencyBalance[i].id,
+               currency_id: currencyBalance[i].currency_id,
+               user_id:  currencyBalance[i].user_id,
+               display_name: currencyBalance[i].Currency.display_name,
+               currency_short_name: currencyBalance[i].Currency.currency_id,
+               image_url: tempArr.length > 0 ? 'https://www.cryptocompare.com'+tempArr[0].ImageUrl : ''
             });
         }
 
         res.json({
             code: "200",
-            message: currencyBalance
+            data: currencyArr
         });
     });
 
