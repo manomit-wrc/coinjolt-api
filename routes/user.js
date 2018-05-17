@@ -339,9 +339,16 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //get the current rate of a particular coin
-    app.post('/api/user/cur-rate', (req, res) => {
+    app.post('/api/user/cur-rate', async (req, res) => {
         const currency_id = req.body.currency_id;
-        var response = request('GET','https://coincap.io/page/' + currency_id);
+        currency_details = await Currency.findAll({
+            where: {
+                id: currency_id
+            }
+        });
+        currency_code = currency_details[0].alt_name;
+        currency_code = currency_code.toUpperCase();
+        var response = request('GET','https://coincap.io/page/' + currency_code);
         let data = JSON.parse(response.body);
         coin_rate = data.price_usd;
         res.json({
