@@ -462,14 +462,40 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //get the calculated amount of a particular coin
-    app.post('/coinjolt-api/api/user/calculate-amt', (req, res) => {
+    app.post('/coinjolt-api/api/user/calculate-amt', passport.authenticate('jwt',{session: false}), async (req, res) => {
         const coin_value = req.body.coin_value;
+        const currency_id = req.body.currency_id;
         const cur_rate = req.body.cur_rate;
-        calculated_amt = parseFloat(cur_rate) / parseFloat(coin_value);
-        res.json({
-            code: "200",
-            data: calculated_amt
-        });
+        calculated_amt = parseFloat(cur_rate) * parseFloat(coin_value);
+        if (coin_value == 0) {
+            res.json({
+                code: "402",
+                message: "Currency amount should be more than 0",
+                success: false
+            });
+        }
+        if (coin_value > 0) {
+            let cur_balance = await currency_balance.findAll({
+                attributes: ['balance'],
+                where: {
+                    user_id: req.user.id,
+                    currency_id: currency_id
+                }
+            });
+            var crypto_balance = cur_balance[0].balance;
+            if (parseFloat(coin_value) > parseFloat(crypto_balance)) {
+                res.json({
+                    code: "402",
+                    message: "Amount exceeds currency balance",
+                    success: false
+                });
+            } else {
+                res.json({
+                    code: "200",
+                    data: calculated_amt
+                });
+            }
+        }
     });
 
     //sell a particular coin
