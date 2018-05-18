@@ -9,7 +9,7 @@ const lodash = require('lodash');
 
 module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS) => {
 
-    app.post('/api/user/login', (req, res) => {
+    app.post('/coinjolt-api/api/user/login', (req, res) => {
         const email = req.body.email;
         const password = req.body.password;
 
