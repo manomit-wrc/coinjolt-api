@@ -353,7 +353,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //get the calculated quantity of a particular coin
-    app.post('/coinjolt-api/api/user/calculate-qty', (req, res) => {
+    app.post('/coinjolt-api/api/user/calculate-qty', async (req, res) => {
         const usd_value = req.body.usd_value;
         const cur_rate = req.body.cur_rate;
         calculated_qty = parseFloat(usd_value) / parseFloat(cur_rate);
