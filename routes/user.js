@@ -425,6 +425,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             current_rate: cur_rate,
             converted_amount: converted_amount,
             type: 1,
+            payment_method: 0,
             balance: updated_balance,
             currency_id: currency_id
         }).then(transaction => {
@@ -542,6 +543,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             current_rate: cur_rate,
             converted_amount: coin_value,
             type: 2,
+            payment_method: 0,
             balance: updated_balance,
             currency_id: currency_id
         }).then(transaction => {
