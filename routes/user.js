@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const keys = require('../config/keys');
 const bCrypt = require('bcrypt-nodejs');
 const dateFormat = require('dateformat');
+const sequelize = require('sequelize');
 const Op = require('sequelize').Op;
 const https = require('https');
 const request = require('sync-request');
@@ -21,20 +22,18 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             if(!user) {
                 return res.status(404).json({ code: "404", message: 'User not found' });   
             }
-
-            if(bCrypt.compareSync(password, user.password)) {
+            if (bCrypt.compareSync(password, user.password)) {
                 const payload = { id: user.id, email: user.email };
                 jwt.sign(
                     payload,
                     keys.secretOrKey,
-                    { expiresIn: 3600 },
-                    (err, token) => {
-                      res.json({
-                        code: "200",
-                        token: 'Bearer ' + token
-                    });
-                  }
-                  );
+                    { expiresIn: 3600 }, (err, token) => {
+                        res.json({
+                            code: "200",
+                            token: 'Bearer ' + token
+                        });
+                    }
+                );
             }
             else {
                 return res.status(404).json({ code: "404", message: 'Password incorrect' });
@@ -45,7 +44,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         });
     });
 
-    app.post('/api/user/forgot-password', (req, res) => {
+    app.post('/coinjolt-api/api/user/forgot-password', (req, res) => {
         const email = req.body.email;
         const random_number = Math.floor(100000 + Math.random() * 900000);
         console.log(email,random_number);
@@ -54,7 +53,6 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
                 email
             }
         }).then(user => {
-
             if(!user) {
                 return res.status(404).json({ code: "404", message: 'Email not found' });
             }
@@ -66,40 +64,39 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
                             email: email 
                         }
                     }
-                    ).then(rows => {
-                        var ses = new AWS.SES({apiVersion: '2010-12-01'});
-                        ses.sendEmail({
-                            Source: keys.senderEmail, 
-                            Destination: { ToAddresses: [email] },
-                            Message: {
-                                Subject: {
-                                    Data: "Forgot password"
-                                },
-                                Body: {
-                                    Text: {
-                                        Data: random_number.toString()
-                                    }
+                ).then(rows => {
+                    var ses = new AWS.SES({apiVersion: '2010-12-01'});
+                    ses.sendEmail({
+                        Source: keys.senderEmail, 
+                        Destination: { ToAddresses: [email] },
+                        Message: {
+                            Subject: {
+                                Data: "Forgot password"
+                            },
+                            Body: {
+                                Text: {
+                                    Data: random_number.toString()
                                 }
                             }
-                        }, function(err, data) {
-                            console.log(err);
-                            res.json({
-                                code: "200",
-                                message: 'An OTP has been sent to your email.'
-                            });
+                        }
+                    }, function(err, data) {
+                        console.log(err);
+                        res.json({
+                            code: "200",
+                            message: 'An OTP has been sent to your email.'
                         });
                     });
-                }
-
-            }).catch(err => {
-                res.json({
-                    code: "404",
-                    message: 'Please try again'
                 });
+            }
+        }).catch(err => {
+            res.json({
+                code: "404",
+                message: 'Please try again'
             });
         });
+    });
 
-    app.post('/api/user/check-otp', (req, res) => {
+    app.post('/coinjolt-api/api/user/check-otp', (req, res) => {
         const email = req.body.email;
         const otp = req.body.otp;
         
@@ -124,7 +121,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         });
     });
 
-    app.post('/api/user/forgot-password-reset', (req, res) => {
+    app.post('/coinjolt-api/api/user/forgot-password-reset', (req, res) => {
         const email = req.body.email;
         User.update(
             {password: bCrypt.hashSync(req.body.password)},
@@ -133,15 +130,15 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
                     email: email 
                 }
             }
-            ).then(user => {
-                res.json({
-                    code: "200",
-                    message: 'Password updated successfully'
-                });
+        ).then(user => {
+            res.json({
+                code: "200",
+                message: 'Password updated successfully'
             });
         });
+    });
 
-    app.post('/api/user/register', (req, res) => {
+    app.post('/coinjolt-api/api/user/register', (req, res) => {
         User.findOne({
             where: {
                 email: req.body.email
@@ -180,22 +177,22 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         });
     });
 
-    app.post('/api/user/profile', passport.authenticate('jwt', { session: false }), (req, res) => {
+    app.post('/coinjolt-api/api/user/profile', passport.authenticate('jwt', { session: false }), (req, res) => {
         User.findById(req.user.id, {
             attributes: { exclude: ['password', 'activation_key'] }
         }).then(user => {
-                //user.dob = dateFormat(user.dob, "dd-mm-yyyy");
-                res.json({
-                    code: "200",
-                    user: user
-                });
-            }).catch(err => {
-                return res.status(500).json({ code: "404", message: 'Please try again'});
+            //user.dob = dateFormat(user.dob, "dd-mm-yyyy");
+            res.json({
+                code: "200",
+                user: user
             });
+        }).catch(err => {
+            return res.status(500).json({ code: "404", message: 'Please try again'});
         });
+    });
 
     //change password//
-    app.post('/api/user/change-password', passport.authenticate('jwt', { session: false }), (req, res) => {
+    app.post('/coinjolt-api/api/user/change-password', passport.authenticate('jwt', { session: false }), (req, res) => {
         if (bCrypt.compareSync(req.body.old_password, req.user.password)) {
             const password = bCrypt.hashSync(req.body.new_password);
             User.update({
@@ -222,7 +219,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //most recent activity
-    app.post('/api/user/most-recent-activity', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    app.post('/coinjolt-api/api/user/most-recent-activity', passport.authenticate('jwt', { session: false }), async (req, res) => {
         var values = '';
         var buy_history = '';
 
@@ -239,7 +236,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             },
             limit: 5,
             order: [
-            ['createdAt', 'DESC']
+                ['createdAt', 'DESC']
             ],
             //logging: notOnlyALogger,
             include: [{ 
@@ -251,22 +248,21 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             attributes: ['alt_name','currency_id']
         });
 
-        for(var i = 0; i<currencyCodes.length; i++){
+        for (var i = 0; i < currencyCodes.length; i++) {
             var type = currencyCodes[i].type;
-            if(type == 1){
+            if (type == 1) {
                 currencyCodes[i].type = 'Buy';
-            }else if (type == 2){
+            } else if (type == 2) {
                 currencyCodes[i].type = 'Sell';
             }
-
         }
 
-        if(currencyCodes.length > 0){
+        if (currencyCodes.length > 0) {
             res.json({
                 code: "200",
                 data: currencyCodes
             });
-        }else{
+        } else {
             res.json({
                 code: "404",
                 message: 'No records found.'
@@ -275,7 +271,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //coinwise balance
-    app.post('/api/user/coinwise-balance', passport.authenticate('jwt',{session: false}), async (req, res) => {
+    app.post('/coinjolt-api/api/user/coinwise-balance', passport.authenticate('jwt',{session: false}), async (req, res) => {
         currency_balance.belongsTo(Currency,{foreignKey: 'currency_id'});
         var currencyBalance = await currency_balance.findAll({
             where:{
@@ -291,7 +287,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         let data_for_image = JSON.parse(response_image.body);
         for (var i = 0; i < currencyBalance.length; i++) {
             balance = currencyBalance[i].balance;
-            var response =request('GET','https://coincap.io/page/'+currencyBalance[i].Currency.currency_id);
+            var response = request('GET','https://coincap.io/page/' + currencyBalance[i].Currency.currency_id);
             let data = JSON.parse(response.body);
             coin_rate = data.price_usd;
             usdPrice = (parseFloat(coin_rate) * parseFloat(balance)).toFixed(2);
@@ -303,17 +299,16 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             //END
 
             currencyArr.push({
-             usdPrice: usdPrice.toString(),
-             balance: balance,
-             id: currencyBalance[i].id,
-             currency_id: currencyBalance[i].currency_id,
-             user_id:  currencyBalance[i].user_id,
-             display_name: currencyBalance[i].Currency.display_name,
-             currency_short_name: currencyBalance[i].Currency.currency_id,
-             image_url: tempArr.length > 0 ? 'https://www.cryptocompare.com'+tempArr[0].ImageUrl : ''
-         });
+                usdPrice: usdPrice.toString(),
+                balance: balance,
+                id: currencyBalance[i].id,
+                currency_id: currencyBalance[i].currency_id,
+                user_id:  currencyBalance[i].user_id,
+                display_name: currencyBalance[i].Currency.display_name,
+                currency_short_name: currencyBalance[i].Currency.currency_id,
+                image_url: tempArr.length > 0 ? 'https://www.cryptocompare.com'+tempArr[0].ImageUrl : ''
+            });
         }
-
         res.json({
             code: "200",
             data: currencyArr
@@ -321,7 +316,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //get all list of coins
-    app.post('/api/user/all-coins', (req, res) => {
+    app.post('/coinjolt-api/api/user/all-coins', (req, res) => {
         Currency.findAll({
             attributes: [ 'id', 'currency_id', 'display_name' ]
         }).then(currency => {
@@ -339,7 +334,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //get the current rate of a particular coin
-    app.post('/api/user/cur-rate', async (req, res) => {
+    app.post('/coinjolt-api/api/user/cur-rate', async (req, res) => {
         const currency_id = req.body.currency_id;
         currency_details = await Currency.findAll({
             where: {
@@ -357,8 +352,8 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         });
     });
 
-    //get the calculated amount of a particular coin
-    app.post('/api/user/calculate-qty', (req, res) => {
+    //get the calculated quantity of a particular coin
+    app.post('/coinjolt-api/api/user/calculate-qty', (req, res) => {
         const usd_value = req.body.usd_value;
         const cur_rate = req.body.cur_rate;
         calculated_qty = parseFloat(usd_value) / parseFloat(cur_rate);
@@ -369,87 +364,115 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //buy a particular coin
-    app.post('/api/user/buy-coin', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    app.post('/coinjolt-api/api/user/buy-coin', passport.authenticate('jwt', { session: false }), async (req, res) => {
         const usd_value = req.body.usd_value;
         const currency_id = req.body.currency_id;
         const cur_rate = req.body.cur_rate;
         const converted_amount = req.body.converted_amount;
-
-        var digits = 9;
-        var numfactor = Math.pow(10, parseInt(digits - 1));
-        var random_num =  Math.floor(Math.random() * numfactor) + 1;
-
-        var balance_count = await Deposit.count({
-            where: {
-                user_id: req.user.id,
-                currency_id: currency_id
-            }
-        });
-        if (balance_count > 0) {
-            let currCrypto_bal = await Deposit.findAll({ 
-                attributes: ['balance'],
-                where: {
-                    user_id: req.user.id,
-                    currency_id: currency_id
-                },
-                limit: 1,
-                order: [
-                    ['createdAt', 'DESC']
-                ]
+        var user_current_bal = await calUsdBalance(Deposit, req.user.id);
+        if (usd_value == 0) {
+            res.json({
+                code: "402",
+                message: "Amount should be atleast $1",
+                success: false
             });
-            var crypto_balance = currCrypto_bal[0].balance;
-            var updated_balance = parseFloat(crypto_balance) + parseFloat(converted_amount);
-        } else {
-            var crypto_balance = 0;
-            var updated_balance = 0;
         }
+        if (usd_value > 0) {
+            if (parseFloat(usd_value) > parseFloat(user_current_bal)) {
+                res.json({
+                    code: "402",
+                    message: "Amount exceeds current balance of $" + user_current_bal,
+                    success: false
+                });
+            } else {
+                var digits = 9;
+                var numfactor = Math.pow(10, parseInt(digits - 1));
+                var random_num =  Math.floor(Math.random() * numfactor) + 1;
 
-        Deposit.create({
-            user_id: req.user.id,
-            transaction_id: random_num,
-            checkout_id: random_num,
-            amount: usd_value,
-            current_rate: cur_rate,
-            converted_amount: converted_amount,
-            type: 1,
-            balance: updated_balance,
-            currency_id: currency_id
-        }).then(transaction => {
-            currency_balance.findAndCountAll({
-                where: {
-                    user_id: req.user.id,
-                    currency_id: currency_id
+                var balance_count = await Deposit.count({
+                    where: {
+                        user_id: req.user.id,
+                        currency_id: currency_id
+                    }
+                });
+                if (balance_count > 0) {
+                    let currCrypto_bal = await Deposit.findAll({ 
+                        attributes: ['balance'],
+                        where: {
+                            user_id: req.user.id,
+                            currency_id: currency_id
+                        },
+                        limit: 1,
+                        order: [
+                            ['createdAt', 'DESC']
+                        ]
+                    });
+                    var crypto_balance = currCrypto_bal[0].balance;
+                    var updated_balance = parseFloat(crypto_balance) + parseFloat(converted_amount);
+                } else {
+                    var crypto_balance = 0;
+                    var updated_balance = 0;
                 }
-            }).then(results => {
-                var count = results.count;
-                if (count > 0) {
-                    currency_balance.update({
-                        balance: updated_balance
-                    }, {
+
+                Deposit.create({
+                    user_id: req.user.id,
+                    transaction_id: random_num,
+                    checkout_id: random_num,
+                    amount: usd_value,
+                    current_rate: cur_rate,
+                    converted_amount: converted_amount,
+                    type: 1,
+                    balance: updated_balance,
+                    currency_id: currency_id
+                }).then(transaction => {
+                    currency_balance.findAndCountAll({
                         where: {
                             user_id: req.user.id,
                             currency_id: currency_id
                         }
+                    }).then(results => {
+                        var count = results.count;
+                        if (count > 0) {
+                            currency_balance.update({
+                                balance: updated_balance
+                            }, {
+                                where: {
+                                    user_id: req.user.id,
+                                    currency_id: currency_id
+                                }
+                            });
+                        } else {
+                            currency_balance.create({
+                                user_id: req.user.id,
+                                balance: updated_balance,
+                                currency_id: currency_id
+                            });
+                        }
+                        res.json({
+                            code: "200",
+                            success: true
+                        });
                     });
-                } else {
-                    currency_balance.create({
-                        user_id: req.user.id,
-                        balance: updated_balance,
-                        currency_id: currency_id
-                    });
-                }
-                res.json({
-                    code: "200",
-                    success: true
+                }).catch(function (err) {
+                    console.log(err);
                 });
-            });
-        }).catch(function (err) {
-            console.log(err);
+            }
+        }
+    });
+
+    //get the calculated amount of a particular coin
+    app.post('/coinjolt-api/api/user/calculate-amt', (req, res) => {
+        const coin_value = req.body.coin_value;
+        const cur_rate = req.body.cur_rate;
+        calculated_amt = parseFloat(cur_rate) / parseFloat(coin_value);
+        res.json({
+            code: "200",
+            data: calculated_amt
         });
     });
 
     //sell a particular coin
-    app.post('/api/user/sell-coin', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    app.post('/coinjolt-api/api/user/sell-coin', passport.authenticate('jwt', { session: false }), async (req, res) => {
         const currency_id = req.body.currency_id;
         const cur_rate = req.body.cur_rate;
         const coin_value = req.body.coin_value;
@@ -529,3 +552,35 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
 };
+
+async function calUsdBalance(Deposit, id) {
+    try {
+        sold_amount = await Deposit.findAll({
+            where: {user_id: id, type: 2},
+            attributes: [[ sequelize.fn('SUM', sequelize.col('amount')), 'SELL_TOTAL_AMT']]
+        });
+
+        withdraw_amount = await Deposit.findAll({
+            where: {user_id: id, type: 3},
+            attributes: [[ sequelize.fn('SUM', sequelize.col('amount')), 'TOT_USD_AMT']]
+        });
+
+        transaction_amount = await Deposit.findAll({
+            where: {user_id: id, type: 1},
+            attributes: [[ sequelize.fn('SUM', sequelize.col('amount')), 'TOT_AMT']]
+        });
+
+        deposit_amount = await Deposit.findAll({
+            where: {user_id: id, type: 0},
+            attributes: [[ sequelize.fn('SUM', sequelize.col('amount')), 'TOT_DEP_AMT']]
+        });
+
+        var cal_currusd = sold_amount[0].get('SELL_TOTAL_AMT') - withdraw_amount[0].get('TOT_USD_AMT');
+        var new_currusd = cal_currusd - transaction_amount[0].get('TOT_AMT');
+        var curr_usd = new_currusd + deposit_amount[0].get('TOT_DEP_AMT');
+        var final = parseFloat(Math.round(curr_usd * 100) / 100).toFixed(2);
+        return final;
+    } catch (err) {
+        console.log('Opps, an error occurred', err);
+    }
+}
