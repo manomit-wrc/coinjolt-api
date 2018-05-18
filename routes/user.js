@@ -357,18 +357,6 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         const usd_value = req.body.usd_value;
         const cur_rate = req.body.cur_rate;
         calculated_qty = parseFloat(usd_value) / parseFloat(cur_rate);
-        res.json({
-            code: "200",
-            data: calculated_qty
-        });
-    });
-
-    //buy a particular coin
-    app.post('/coinjolt-api/api/user/buy-coin', passport.authenticate('jwt', { session: false }), async (req, res) => {
-        const usd_value = req.body.usd_value;
-        const currency_id = req.body.currency_id;
-        const cur_rate = req.body.cur_rate;
-        const converted_amount = req.body.converted_amount;
         var user_current_bal = await calUsdBalance(Deposit, req.user.id);
         if (usd_value == 0) {
             res.json({
@@ -385,79 +373,92 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
                     success: false
                 });
             } else {
-                var digits = 9;
-                var numfactor = Math.pow(10, parseInt(digits - 1));
-                var random_num =  Math.floor(Math.random() * numfactor) + 1;
-
-                var balance_count = await Deposit.count({
-                    where: {
-                        user_id: req.user.id,
-                        currency_id: currency_id
-                    }
-                });
-                if (balance_count > 0) {
-                    let currCrypto_bal = await Deposit.findAll({ 
-                        attributes: ['balance'],
-                        where: {
-                            user_id: req.user.id,
-                            currency_id: currency_id
-                        },
-                        limit: 1,
-                        order: [
-                            ['createdAt', 'DESC']
-                        ]
-                    });
-                    var crypto_balance = currCrypto_bal[0].balance;
-                    var updated_balance = parseFloat(crypto_balance) + parseFloat(converted_amount);
-                } else {
-                    var crypto_balance = 0;
-                    var updated_balance = 0;
-                }
-
-                Deposit.create({
-                    user_id: req.user.id,
-                    transaction_id: random_num,
-                    checkout_id: random_num,
-                    amount: usd_value,
-                    current_rate: cur_rate,
-                    converted_amount: converted_amount,
-                    type: 1,
-                    balance: updated_balance,
-                    currency_id: currency_id
-                }).then(transaction => {
-                    currency_balance.findAndCountAll({
-                        where: {
-                            user_id: req.user.id,
-                            currency_id: currency_id
-                        }
-                    }).then(results => {
-                        var count = results.count;
-                        if (count > 0) {
-                            currency_balance.update({
-                                balance: updated_balance
-                            }, {
-                                where: {
-                                    user_id: req.user.id,
-                                    currency_id: currency_id
-                                }
-                            });
-                        } else {
-                            currency_balance.create({
-                                user_id: req.user.id,
-                                balance: updated_balance,
-                                currency_id: currency_id
-                            });
-                        }
-                        res.json({
-                            code: "200",
-                            success: true
-                        });
-                    });
-                }).catch(function (err) {
-                    console.log(err);
+                res.json({
+                    code: "200",
+                    data: calculated_qty
                 });
             }
         }
+    });
+
+    //buy a particular coin
+    app.post('/coinjolt-api/api/user/buy-coin', passport.authenticate('jwt', { session: false }), async (req, res) => {
+        const usd_value = req.body.usd_value;
+        const currency_id = req.body.currency_id;
+        const cur_rate = req.body.cur_rate;
+        const converted_amount = req.body.converted_amount;
+        
+        var digits = 9;
+        var numfactor = Math.pow(10, parseInt(digits - 1));
+        var random_num =  Math.floor(Math.random() * numfactor) + 1;
+
+        var balance_count = await Deposit.count({
+            where: {
+                user_id: req.user.id,
+                currency_id: currency_id
+            }
+        });
+        if (balance_count > 0) {
+            let currCrypto_bal = await Deposit.findAll({ 
+                attributes: ['balance'],
+                where: {
+                    user_id: req.user.id,
+                    currency_id: currency_id
+                },
+                limit: 1,
+                order: [
+                    ['createdAt', 'DESC']
+                ]
+            });
+            var crypto_balance = currCrypto_bal[0].balance;
+            var updated_balance = parseFloat(crypto_balance) + parseFloat(converted_amount);
+        } else {
+            var crypto_balance = 0;
+            var updated_balance = 0;
+        }
+
+        Deposit.create({
+            user_id: req.user.id,
+            transaction_id: random_num,
+            checkout_id: random_num,
+            amount: usd_value,
+            current_rate: cur_rate,
+            converted_amount: converted_amount,
+            type: 1,
+            balance: updated_balance,
+            currency_id: currency_id
+        }).then(transaction => {
+            currency_balance.findAndCountAll({
+                where: {
+                    user_id: req.user.id,
+                    currency_id: currency_id
+                }
+            }).then(results => {
+                var count = results.count;
+                if (count > 0) {
+                    currency_balance.update({
+                        balance: updated_balance
+                    }, {
+                        where: {
+                            user_id: req.user.id,
+                            currency_id: currency_id
+                        }
+                    });
+                } else {
+                    currency_balance.create({
+                        user_id: req.user.id,
+                        balance: updated_balance,
+                        currency_id: currency_id
+                    });
+                }
+                res.json({
+                    code: "200",
+                    success: true
+                });
+            });
+        }).catch(function (err) {
+            console.log(err);
+        });
     });
 
     //get the calculated amount of a particular coin
