@@ -10,7 +10,7 @@ const lodash = require('lodash');
 
 module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS) => {
 
-    app.post('/coinjolt-api/api/user/login', (req, res) => {
+    app.post('/api/user/login', (req, res) => {
         const email = req.body.email;
         const password = req.body.password;
 
@@ -44,7 +44,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         });
     });
 
-    app.post('/coinjolt-api/api/user/forgot-password', (req, res) => {
+    app.post('/api/user/forgot-password', (req, res) => {
         const email = req.body.email;
         const random_number = Math.floor(100000 + Math.random() * 900000);
         console.log(email,random_number);
@@ -96,7 +96,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         });
     });
 
-    app.post('/coinjolt-api/api/user/check-otp', (req, res) => {
+    app.post('/api/user/check-otp', (req, res) => {
         const email = req.body.email;
         const otp = req.body.otp;
         
@@ -121,7 +121,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         });
     });
 
-    app.post('/coinjolt-api/api/user/forgot-password-reset', (req, res) => {
+    app.post('/api/user/forgot-password-reset', (req, res) => {
         const email = req.body.email;
         User.update(
             {password: bCrypt.hashSync(req.body.password)},
@@ -138,7 +138,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         });
     });
 
-    app.post('/coinjolt-api/api/user/register', (req, res) => {
+    app.post('/api/user/register', (req, res) => {
         User.findOne({
             where: {
                 email: req.body.email
@@ -177,7 +177,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         });
     });
 
-    app.post('/coinjolt-api/api/user/profile', passport.authenticate('jwt', { session: false }), (req, res) => {
+    app.post('/api/user/profile', passport.authenticate('jwt', { session: false }), (req, res) => {
         User.findById(req.user.id, {
             attributes: { exclude: ['password', 'activation_key'] }
         }).then(user => {
@@ -192,7 +192,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //change password//
-    app.post('/coinjolt-api/api/user/change-password', passport.authenticate('jwt', { session: false }), (req, res) => {
+    app.post('/api/user/change-password', passport.authenticate('jwt', { session: false }), (req, res) => {
         if (bCrypt.compareSync(req.body.old_password, req.user.password)) {
             const password = bCrypt.hashSync(req.body.new_password);
             User.update({
@@ -219,7 +219,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //most recent activity
-    app.post('/coinjolt-api/api/user/most-recent-activity', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    app.post('/api/user/most-recent-activity', passport.authenticate('jwt', { session: false }), async (req, res) => {
         var values = '';
         var buy_history = '';
 
@@ -271,7 +271,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //coinwise balance
-    app.post('/coinjolt-api/api/user/coinwise-balance', passport.authenticate('jwt',{session: false}), async (req, res) => {
+    app.post('/api/user/coinwise-balance', passport.authenticate('jwt',{session: false}), async (req, res) => {
         currency_balance.belongsTo(Currency,{foreignKey: 'currency_id'});
         var currencyBalance = await currency_balance.findAll({
             where:{
@@ -316,7 +316,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //get all list of coins
-    app.post('/coinjolt-api/api/user/all-coins', (req, res) => {
+    app.post('/api/user/all-coins', (req, res) => {
         Currency.findAll({
             attributes: [ 'id', 'currency_id', 'display_name' ]
         }).then(currency => {
@@ -334,7 +334,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //get the current rate of a particular coin
-    app.post('/coinjolt-api/api/user/cur-rate', async (req, res) => {
+    app.post('/api/user/cur-rate', async (req, res) => {
         const currency_id = req.body.currency_id;
         currency_details = await Currency.findAll({
             where: {
@@ -353,7 +353,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //get the calculated quantity of a particular coin
-    app.post('/coinjolt-api/api/user/calculate-qty', async (req, res) => {
+    app.post('/api/user/calculate-qty', passport.authenticate('jwt',{session: false}), async (req, res) => {
         const usd_value = req.body.usd_value;
         const cur_rate = req.body.cur_rate;
         calculated_qty = parseFloat(usd_value) / parseFloat(cur_rate);
@@ -382,7 +382,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //buy a particular coin
-    app.post('/coinjolt-api/api/user/buy-coin', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    app.post('/api/user/buy-coin', passport.authenticate('jwt', { session: false }), async (req, res) => {
         const usd_value = req.body.usd_value;
         const currency_id = req.body.currency_id;
         const cur_rate = req.body.cur_rate;
@@ -462,7 +462,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //get the calculated amount of a particular coin
-    app.post('/coinjolt-api/api/user/calculate-amt', (req, res) => {
+    app.post('/api/user/calculate-amt', (req, res) => {
         const coin_value = req.body.coin_value;
         const cur_rate = req.body.cur_rate;
         calculated_amt = parseFloat(cur_rate) / parseFloat(coin_value);
@@ -473,7 +473,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //sell a particular coin
-    app.post('/coinjolt-api/api/user/sell-coin', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    app.post('/api/user/sell-coin', passport.authenticate('jwt', { session: false }), async (req, res) => {
         const currency_id = req.body.currency_id;
         const cur_rate = req.body.cur_rate;
         const coin_value = req.body.coin_value;
