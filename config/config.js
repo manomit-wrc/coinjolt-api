@@ -1,9 +1,9 @@
 module.exports = {
     development: {
-    username: "root",
+    username: "testuser",
     password: "grass1=!",
     database: "cj_coinbase_dev",
-    host: "localhost",
+    host: "192.168.1.109",
     dialect: "mysql",
     logging: false
   },
