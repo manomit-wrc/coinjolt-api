@@ -220,7 +220,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
 
     //most recent activity
     app.post('/coinjolt-api/api/user/most-recent-activity', passport.authenticate('jwt', { session: false }), async (req, res) => {
-        var values = '';
+        /*var values = '';
         var buy_history = '';
 
         Deposit.belongsTo(Currency,{foreignKey: 'currency_id'});
@@ -267,7 +267,99 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
                 code: "404",
                 message: 'No records found.'
             });
-        }        
+        }*/
+
+        var today = new Date();
+        //var dayOfWeekStartingSundayZeroIndexBased = today.getDay(); // 0 : Sunday ,1 : Monday,2,3,4,5,6 : Saturday
+        var mondayOfWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() + 1);
+        var sundayOfWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() + 7);
+        start_date = dateFormat(mondayOfWeek, "yyyy-mm-dd");
+        end_date = dateFormat(sundayOfWeek, "yyyy-mm-dd");
+
+        const currency_id = req.body.currency_id;
+        var user_recent_trans_arr = [];
+        var user_weekly_trans_arr = [];
+        var type_name;
+        Deposit.belongsTo(User, {foreignKey: 'user_id'});
+        Promise.all([
+            Deposit.findAll({
+                include: [{
+                    model: User
+                }],
+                where: {
+                    user_id: req.user.id,
+                    currency_id: currency_id
+                },
+                limit: 5,
+                order: [
+                    ['id', 'DESC']
+                ]
+            }),
+            Deposit.findAll({
+                include: [{
+                    model: User
+                }],
+                where: {
+                    user_id: req.user.id,
+                    currency_id: currency_id,
+                    createdAt: {
+                        [Op.gte]: start_date,
+                        [Op.lte]: end_date
+                    }
+                },
+                order: [
+                    ['id', 'DESC']
+                ]
+            })
+        ]).then(values => {
+            var result = JSON.parse(JSON.stringify(values));
+            //console.log(result[1]);
+            for (var i = 0; i < result[0].length; i++) {
+                if (result[0][i].type == 0) {
+                    type_name = 'Deposit';
+                } else if (result[0][i].type == 1) {
+                    type_name = 'Buy';
+                } else if (result[0][i].type == 2) {
+                    type_name = 'Sell';
+                } else if (result[0][i].type == 3) {
+                    type_name = 'Withdraw';
+                } else if (result[0][i].type == 4) {
+                    type_name = 'MCP Invest';
+                } else if (result[0][i].type == 5) {
+                    type_name = 'MCP Withdraw';
+                }
+                user_recent_trans_arr.push({
+                    name: result[0][i].User.first_name + " " + result[0][i].User.last_name,
+                    amount: result[0][i].amount,
+                    type: type_name
+                });
+            }
+            for (var j = 0; j < result[1].length; j++) {
+                if (result[1][j].type == 0) {
+                    type_name = 'Deposit';
+                } else if (result[1][j].type == 1) {
+                    type_name = 'Buy';
+                } else if (result[1][j].type == 2) {
+                    type_name = 'Sell';
+                } else if (result[1][j].type == 3) {
+                    type_name = 'Withdraw';
+                } else if (result[1][j].type == 4) {
+                    type_name = 'MCP Invest';
+                } else if (result[1][j].type == 5) {
+                    type_name = 'MCP Withdraw';
+                }
+                user_weekly_trans_arr.push({
+                    name: result[1][j].User.first_name + " " + result[1][j].User.last_name,
+                    amount: result[1][j].amount,
+                    type: type_name
+                });
+            }
+            res.json({
+                code: "200",
+                recent_activity: user_recent_trans_arr,
+                weekly_activity: user_weekly_trans_arr
+            });
+        });
     });
 
     //coinwise balance
