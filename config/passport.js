@@ -16,7 +16,7 @@ module.exports = (passport, User) => {
                 return done(null, false);
             })
             .catch(err => {
-                if (err === "Unauthorised") {
+                if (err === Unauthorized) {
                     console.log("Token Expired. Please login again!");
                 }
                 console.log(err);
