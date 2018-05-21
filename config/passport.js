@@ -15,7 +15,12 @@ module.exports = (passport, User) => {
                 }
                 return done(null, false);
             })
-            .catch(err => console.log(err));
+            .catch(err => {
+                if (err === "Unauthorised") {
+                    console.log("Token Expired. Please login again!");
+                }
+                console.log(err);
+            });
         })
     );
 };

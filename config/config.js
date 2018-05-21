@@ -5,7 +5,7 @@ module.exports = {
     database: "cj_coinbase_dev",
     host: "192.168.1.109",
     dialect: "mysql",
-    logging: false
+    logging: true
   },
     production: {
     username: "testuser",
