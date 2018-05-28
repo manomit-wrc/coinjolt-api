@@ -10,19 +10,17 @@ const lodash = require('lodash');
 
 module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS) => {
 
-    app.post('/coinjolt-api/api/user/login', (req, res) => {
+    app.post('/coinjolt-api/api/user/login', async (req, res) => {
         const email = req.body.email;
         const password = req.body.password;
-
-        User.findOne({
+        var user = await User.findOne({
             where: {
                 email
             }
-        }).then(user => {
-            if(!user) {
-                return res.status(404).json({ code: "404", message: 'User not found' });   
-            }
+        });
+        if (user) {
             if (bCrypt.compareSync(password, user.password)) {
+                var user_current_bal = await calUsdBalance(Deposit, user.id);
                 const payload = { id: user.id, email: user.email };
                 jwt.sign(
                     payload,
@@ -30,7 +28,8 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
                     { expiresIn: 3600 }, (err, token) => {
                         res.json({
                             code: "200",
-                            token: 'Bearer ' + token
+                            token: 'Bearer ' + token,
+                            user_current_bal: user_current_bal
                         });
                     }
                 );
@@ -38,10 +37,10 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             else {
                 return res.status(404).json({ code: "404", message: 'Password incorrect' });
             }
-        }).catch(err => {
-            console.log(err);
-            return res.status(500).json({ code: "404", message: 'Please try again'});
-        });
+        }
+        else {
+            return res.status(404).json({ code: "404", message: 'User not found' }); 
+        }
     });
 
     app.post('/coinjolt-api/api/user/forgot-password', (req, res) => {
@@ -138,43 +137,44 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         });
     });
 
-    app.post('/coinjolt-api/api/user/register', (req, res) => {
-        User.findOne({
+    app.post('/coinjolt-api/api/user/register', async (req, res) => {
+        var exist_user = await User.findOne({
             where: {
                 email: req.body.email
             }
-        }).then(user => {
-            if(user) {
-                res.json({
-                    code: "404",
-                    message: 'Email already exists'
-                }); 
-            }
-            else {
-                User.create({
-                    first_name: req.body.first_name,
-                    last_name: req.body.last_name,
-                    email: req.body.email,
-                    password: bCrypt.hashSync(req.body.password),
-                    image: keys.S3_URL + 'profile/nobody.jpg',
-                    identity_proof: 'javascript:void(0)',
-                    type: 2
-                }).then(user => {
-                    const payload = { id: user.id, email: user.email };
-                    jwt.sign(
-                        payload,
-                        keys.secretOrKey,
-                        { expiresIn: 3600 },
-                        (err, token) => {
-                            res.json({
-                                code: "200",
-                                token: 'Bearer ' + token
-                            });
-                        }
-                        );
-                });
-            }
         });
+        if (exist_user) {
+            res.json({
+                code: "404",
+                message: 'Email already exists'
+            }); 
+        }
+        else {
+            var user = await User.create({
+                first_name: req.body.first_name,
+                last_name: req.body.last_name,
+                email: req.body.email,
+                password: bCrypt.hashSync(req.body.password),
+                image: keys.S3_URL + 'profile/nobody.jpg',
+                identity_proof: 'javascript:void(0)',
+                type: 2
+            });
+            if (user) {
+                var user_current_bal = await calUsdBalance(Deposit, user.id);
+                const payload = { id: user.id, email: user.email };
+                jwt.sign(
+                    payload,
+                    keys.secretOrKey,
+                    { expiresIn: 3600 }, (err, token) => {
+                        res.json({
+                            code: "200",
+                            token: 'Bearer ' + token,
+                            user_current_bal: user_current_bal
+                        });
+                    }
+                );
+            }
+        }
     });
 
     app.post('/coinjolt-api/api/user/profile', passport.authenticate('jwt', { session: false }), (req, res) => {
