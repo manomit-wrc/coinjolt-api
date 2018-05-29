@@ -674,17 +674,33 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
 
     //get all coin data for chart from API
     app.post('/api/user/coin-chart-data', passport.authenticate('jwt', { session: false }), (req,res) => {
+        var newTempArr = [];
         var response = request('GET','https://api.coinmarketcap.com/v2/ticker/');
         var result = JSON.parse(response.body);
+        
         var newArray = [];
-        for (var i = 0; i<result.length; i++ ) {
-            newArray.push({
-                id:result.data[i].id
+        var symbol = ['BTC', 'BCH', 'LTC', 'ETH'];
+        tempArr = lodash.filter(result.data , x => x.symbol === 'BTC' || x.symbol === 'BCH' || x.symbol === 'LTC' || x.symbol === 'ETH');
+
+        for (var i = 0; i<tempArr.length; i++) {
+            var coin_symbol = tempArr[i].symbol;
+
+            var resp = request('GET', 'https://min-api.cryptocompare.com/data/histoday?fsym='+coin_symbol+'&tsym=USD&limit=60&aggregate=3&e=CCCAGG');
+            var result_data = JSON.parse(resp.body);
+
+            newTempArr.push({
+                'graph_data' : result_data.Data,
+                'name': tempArr[i].name,
+                'symbol': tempArr[i].symbol,
+                'usd_price': tempArr[i].quotes.USD.price,
+                'percent_change_7d': tempArr[i].quotes.USD.percent_change_7d
             });
         }
+
         res.json({
-            data: newArray
+            data: newTempArr
         });
+        
     });
 
 };
