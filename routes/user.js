@@ -10,19 +10,17 @@ const lodash = require('lodash');
 
 module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS) => {
 
-    app.post('/coinjolt-api/api/user/login', (req, res) => {
+    app.post('/coinjolt-api/api/user/login', async (req, res) => {
         const email = req.body.email;
         const password = req.body.password;
-
-        User.findOne({
+        var user = await User.findOne({
             where: {
                 email
             }
-        }).then(user => {
-            if(!user) {
-                return res.status(404).json({ code: "404", message: 'User not found' });   
-            }
+        });
+        if (user) {
             if (bCrypt.compareSync(password, user.password)) {
+                var user_current_bal = await calUsdBalance(Deposit, user.id);
                 const payload = { id: user.id, email: user.email };
                 jwt.sign(
                     payload,
@@ -30,7 +28,8 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
                     { expiresIn: 3600 }, (err, token) => {
                         res.json({
                             code: "200",
-                            token: 'Bearer ' + token
+                            token: 'Bearer ' + token,
+                            user_current_bal: user_current_bal
                         });
                     }
                 );
@@ -38,10 +37,10 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             else {
                 return res.status(404).json({ code: "404", message: 'Password incorrect' });
             }
-        }).catch(err => {
-            console.log(err);
-            return res.status(500).json({ code: "404", message: 'Please try again'});
-        });
+        }
+        else {
+            return res.status(404).json({ code: "404", message: 'User not found' }); 
+        }
     });
 
     app.post('/coinjolt-api/api/user/forgot-password', (req, res) => {
@@ -138,43 +137,44 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         });
     });
 
-    app.post('/coinjolt-api/api/user/register', (req, res) => {
-        User.findOne({
+    app.post('/coinjolt-api/api/user/register', async (req, res) => {
+        var exist_user = await User.findOne({
             where: {
                 email: req.body.email
             }
-        }).then(user => {
-            if(user) {
-                res.json({
-                    code: "404",
-                    message: 'Email already exists'
-                }); 
-            }
-            else {
-                User.create({
-                    first_name: req.body.first_name,
-                    last_name: req.body.last_name,
-                    email: req.body.email,
-                    password: bCrypt.hashSync(req.body.password),
-                    image: keys.S3_URL + 'profile/nobody.jpg',
-                    identity_proof: 'javascript:void(0)',
-                    type: 2
-                }).then(user => {
-                    const payload = { id: user.id, email: user.email };
-                    jwt.sign(
-                        payload,
-                        keys.secretOrKey,
-                        { expiresIn: 3600 },
-                        (err, token) => {
-                            res.json({
-                                code: "200",
-                                token: 'Bearer ' + token
-                            });
-                        }
-                        );
-                });
-            }
         });
+        if (exist_user) {
+            res.json({
+                code: "404",
+                message: 'Email already exists'
+            }); 
+        }
+        else {
+            var user = await User.create({
+                first_name: req.body.first_name,
+                last_name: req.body.last_name,
+                email: req.body.email,
+                password: bCrypt.hashSync(req.body.password),
+                image: keys.S3_URL + 'profile/nobody.jpg',
+                identity_proof: 'javascript:void(0)',
+                type: 2
+            });
+            if (user) {
+                var user_current_bal = await calUsdBalance(Deposit, user.id);
+                const payload = { id: user.id, email: user.email };
+                jwt.sign(
+                    payload,
+                    keys.secretOrKey,
+                    { expiresIn: 3600 }, (err, token) => {
+                        res.json({
+                            code: "200",
+                            token: 'Bearer ' + token,
+                            user_current_bal: user_current_bal
+                        });
+                    }
+                );
+            }
+        }
     });
 
     app.post('/coinjolt-api/api/user/profile', passport.authenticate('jwt', { session: false }), (req, res) => {
@@ -220,55 +220,13 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
 
     //most recent activity
     app.post('/coinjolt-api/api/user/most-recent-activity', passport.authenticate('jwt', { session: false }), async (req, res) => {
-        /*var values = '';
-        var buy_history = '';
-
-        Deposit.belongsTo(Currency,{foreignKey: 'currency_id'});
-        let currencyCodes = await Deposit.findAll(
-        { 
-            attributes: { exclude: ['credit_card_no','card_expmonth','card_expyear','cvv'] },
+        const currency_id = req.body.currency_id;
+        var coin_details = await Currency.findAll({
             where: {
-                user_id: req.user.id,
-                currency_id: req.body.currency_id,
-                type: {
-                    [Op.or]: [1, 2]
-                }
-            },
-            limit: 5,
-            order: [
-                ['createdAt', 'DESC']
-            ],
-            //logging: notOnlyALogger,
-            include: [{ 
-                model: Currency, required: true
-                
-            }] 
-        }); 
-        values = await Currency.findAll({
-            attributes: ['alt_name','currency_id']
-        });
-
-        for (var i = 0; i < currencyCodes.length; i++) {
-            var type = currencyCodes[i].type;
-            if (type == 1) {
-                currencyCodes[i].type = 'Buy';
-            } else if (type == 2) {
-                currencyCodes[i].type = 'Sell';
+                id: currency_id
             }
-        }
-
-        if (currencyCodes.length > 0) {
-            res.json({
-                code: "200",
-                data: currencyCodes
-            });
-        } else {
-            res.json({
-                code: "404",
-                message: 'No records found.'
-            });
-        }*/
-
+        });
+        cur_name = coin_details[0].display_name;
         var today = new Date();
         //var dayOfWeekStartingSundayZeroIndexBased = today.getDay(); // 0 : Sunday ,1 : Monday,2,3,4,5,6 : Saturday
         var mondayOfWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() + 1);
@@ -276,7 +234,6 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         start_date = dateFormat(mondayOfWeek, "yyyy-mm-dd");
         end_date = dateFormat(sundayOfWeek, "yyyy-mm-dd");
 
-        const currency_id = req.body.currency_id;
         var user_recent_trans_arr = [];
         var user_weekly_trans_arr = [];
         var type_name;
@@ -356,6 +313,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             }
             res.json({
                 code: "200",
+                cur_name: cur_name,
                 recent_activity: user_recent_trans_arr,
                 weekly_activity: user_weekly_trans_arr
             });
@@ -366,7 +324,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     app.post('/coinjolt-api/api/user/coinwise-balance', passport.authenticate('jwt',{session: false}), async (req, res) => {
         currency_balance.belongsTo(Currency,{foreignKey: 'currency_id'});
         var currencyBalance = await currency_balance.findAll({
-            where:{
+            where: {
                 user_id: req.user.id
             },
             include: [{
