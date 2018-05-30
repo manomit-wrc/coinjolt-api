@@ -636,7 +636,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         var response = request('GET','https://api.coinmarketcap.com/v2/ticker/');
         var result = JSON.parse(response.body);
         
-        var newArray = graphDataArr = finalArr = [];
+        var newArray  = finalArr = [];
         
         var symbol = ['BTC', 'BCH', 'LTC', 'ETH'];
         tempArr = lodash.filter(result.data , x => x.symbol === 'BTC' || x.symbol === 'BCH' || x.symbol === 'LTC' || x.symbol === 'ETH');
@@ -644,6 +644,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         var obj = {};
 
         for (var i = 0; i<tempArr.length; i++) {
+            var graphDataArr = [];
             var coin_symbol = tempArr[i].symbol;
 
             var resp = request('GET', 'https://min-api.cryptocompare.com/data/histoday?fsym='+coin_symbol+'&tsym=USD&limit=60&aggregate=3&e=CCCAGG');
