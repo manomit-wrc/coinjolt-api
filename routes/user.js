@@ -668,6 +668,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         }
 
         res.json({
+            code: "200",
             data: obj
         });
         
