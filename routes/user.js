@@ -646,6 +646,9 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         for (var i = 0; i<tempArr.length; i++) {
             var graphDataArr = [];
             var coin_symbol = tempArr[i].symbol;
+            var todays_usd_price = tempArr[i].quotes.USD.price;
+            var percent_change_7d = tempArr[i].quotes.USD.percent_change_7d;
+            var change_7d_amount = (Math.abs((tempArr[i].quotes.USD.price * tempArr[i].quotes.USD.percent_change_7d) / 100)).toFixed(2);
 
             var resp = request('GET', 'https://min-api.cryptocompare.com/data/histoday?fsym='+coin_symbol+'&tsym=USD&limit=60&aggregate=3&e=CCCAGG');
             var result_data = JSON.parse(resp.body);
@@ -657,8 +660,9 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             obj[coin_symbol] = [];
             obj[coin_symbol].push({
                'graph_data' : graphDataArr,
-               'usd_price': tempArr[i].quotes.USD.price,
-               'percent_change_7d': tempArr[i].quotes.USD.percent_change_7d
+               'usd_price': todays_usd_price,
+               'percent_change_7d': percent_change_7d,
+               'percent_change_7d_amount': change_7d_amount
            });
             
         }
