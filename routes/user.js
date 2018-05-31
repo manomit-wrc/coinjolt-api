@@ -631,7 +631,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //get all coin data,graph data for chart from API
-    app.post('/api/user/coin-chart-data', passport.authenticate('jwt', { session: false }), (req,res) => {
+    app.post('/coinjolt-api/api/user/coin-chart-data', passport.authenticate('jwt', { session: false }), (req,res) => {
         var newTempArr = [];
         var response = request('GET','https://api.coinmarketcap.com/v2/ticker/');
         var result = JSON.parse(response.body);
