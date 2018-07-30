@@ -10,7 +10,9 @@ const lodash = require('lodash');
 
 module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS) => {
 
+
     app.post('/coinjolt-api/api/user/login', async (req, res) => {
+
         const email = req.body.email;
         const password = req.body.password;
         var user = await User.findOne({
@@ -39,11 +41,13 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
                 );
             }
             else {
-                return res.status(404).json({ code: "404", message: 'Password incorrect' });
+                return res.status(404).json({ code: "300", message: 'Password incorrect' });
             }
         }
         else {
+
             return res.status(404).json({ code: "404", message: 'User not found' }); 
+
         }
     });
 
@@ -141,7 +145,9 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         });
     });
 
+
     app.post('/coinjolt-api/api/user/register', async (req, res) => {
+
         var exist_user = await User.findOne({
             where: {
                 email: req.body.email
@@ -325,7 +331,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //coinwise balance
-    app.post('/coinjolt-api/api/user/coinwise-balance', passport.authenticate('jwt',{session: false}), async (req, res) => {
+    app.post('/coinjolt-api/api/user/coinwise-balance/', passport.authenticate('jwt',{session: false}), async (req, res) => {
         currency_balance.belongsTo(Currency,{foreignKey: 'currency_id'});
         var currencyBalance = await currency_balance.findAll({
             where: {
@@ -648,7 +654,9 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //get all coin data,graph data for chart from API
+
     app.post('/coinjolt-api/api/user/coin-chart-data', (req,res) => {
+
         var newTempArr = [];
         var response = request('GET','https://api.coinmarketcap.com/v2/ticker/');
         var result = JSON.parse(response.body);
