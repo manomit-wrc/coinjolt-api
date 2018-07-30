@@ -21,10 +21,6 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         if (user) {
             if (bCrypt.compareSync(password, user.password)) {
                 var user_current_bal = await calUsdBalance(Deposit, user.id);
-                coin_rate = user_current_bal.toString().split(".");
-                coin_rate[0] = coin_rate[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-                new_rate = coin_rate.join(".");
-
                 const payload = { id: user.id, email: user.email };
                 jwt.sign(
                     payload,
@@ -33,7 +29,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
                         res.json({
                             code: "200",
                             token: 'Bearer ' + token,
-                            user_current_bal: new_rate
+                            user_current_bal: user_current_bal
                         });
                     }
                 );
@@ -340,19 +336,11 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         var response_image = request('GET','https://www.cryptocompare.com/api/data/coinlist/');
         let data_for_image = JSON.parse(response_image.body);
         for (var i = 0; i < currencyBalance.length; i++) {
-            // balance = currencyBalance[i].balance;
-            balance = currencyBalance[i].balance.toString().split(".");
-            balance[0] = balance[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-            new_balance = balance.join(".");
-
+            balance = currencyBalance[i].balance;
             var response = request('GET','https://coincap.io/page/' + currencyBalance[i].Currency.currency_id);
             let data = JSON.parse(response.body);
-
-            coin_rate = data.price_usd.toString().split(".");
-            coin_rate[0] = coin_rate[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-            new_rate = coin_rate.join(".");
-
-            usdPrice = (parseFloat(new_rate) * parseFloat(balance)).toFixed(2);
+            coin_rate = data.price_usd;
+            usdPrice = (parseFloat(coin_rate) * parseFloat(balance)).toFixed(2);
             currencyBalance[i].Currency.usdPrice = usdPrice;
 
             //GET IMAGE LINK FROM API           
@@ -362,7 +350,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
 
             currencyArr.push({
                 usdPrice: usdPrice.toString(),
-                balance: new_balance,
+                balance: balance,
                 id: currencyBalance[i].id,
                 currency_id: currencyBalance[i].currency_id,
                 user_id:  currencyBalance[i].user_id,
@@ -398,7 +386,6 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     //get the current rate of a particular coin
     app.post('/coinjolt-api/api/user/cur-rate', async (req, res) => {
         const currency_id = req.body.currency_id;
-        var currency_code;
         currency_details = await Currency.findAll({
             where: {
                 id: currency_id
@@ -408,14 +395,10 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         currency_code = currency_code.toUpperCase();
         var response = request('GET','https://coincap.io/page/' + currency_code);
         let data = JSON.parse(response.body);
-
-        coin_rate = data.price_usd.toString().split(".");
-        coin_rate[0] = coin_rate[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        new_rate = coin_rate.join(".");
-
+        coin_rate = data.price_usd;
         res.json({
             code: "200",
-            data: new_rate
+            data: coin_rate
         });
     });
 
@@ -663,11 +646,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         for (var i = 0; i<tempArr.length; i++) {
             var graphDataArr = [];
             var coin_symbol = tempArr[i].symbol;
-
-            var todays_usd_price = tempArr[i].quotes.USD.price.toString().split(".");
-            todays_usd_price[0] = todays_usd_price[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-            new_todays_usd_price = todays_usd_price.join(".");
-
+            var todays_usd_price = tempArr[i].quotes.USD.price;
             var percent_change_7d = tempArr[i].quotes.USD.percent_change_7d;
             var change_7d_amount = (Math.abs((tempArr[i].quotes.USD.price * tempArr[i].quotes.USD.percent_change_7d) / 100)).toFixed(2);
 
@@ -681,7 +660,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             obj[coin_symbol] = [];
             obj[coin_symbol].push({
                'graph_data' : graphDataArr,
-               'usd_price': new_todays_usd_price,
+               'usd_price': todays_usd_price,
                'percent_change_7d': percent_change_7d,
                'percent_change_7d_amount': change_7d_amount
            });
