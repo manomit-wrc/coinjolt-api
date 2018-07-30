@@ -10,7 +10,9 @@ const lodash = require('lodash');
 
 module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS) => {
 
-    app.post('/coinjolt-api/api/user/login/', async (req, res) => {
+
+    app.post('/coinjolt-api/api/user/login', async (req, res) => {
+
         const email = req.body.email;
         const password = req.body.password;
         var user = await User.findOne({
@@ -39,7 +41,9 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             }
         }
         else {
-            return res.status(404).json({ code: "300", message: 'User not found' }); 
+
+            return res.status(404).json({ code: "404", message: 'User not found' }); 
+
         }
     });
 
@@ -137,7 +141,9 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         });
     });
 
-    app.post('/coinjolt-api/api/user/register/', async (req, res) => {
+
+    app.post('/coinjolt-api/api/user/register', async (req, res) => {
+
         var exist_user = await User.findOne({
             where: {
                 email: req.body.email
@@ -339,8 +345,12 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             balance = currencyBalance[i].balance;
             var response = request('GET','https://coincap.io/page/' + currencyBalance[i].Currency.currency_id);
             let data = JSON.parse(response.body);
-            coin_rate = data.price_usd;
-            usdPrice = (parseFloat(coin_rate) * parseFloat(balance)).toFixed(2);
+
+            coin_rate = data.price_usd.toString().split(".");
+            coin_rate[0] = coin_rate[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            new_rate = coin_rate.join(".");
+            
+            usdPrice = (parseFloat(new_rate) * parseFloat(balance)).toFixed(2);
             currencyBalance[i].Currency.usdPrice = usdPrice;
 
             //GET IMAGE LINK FROM API           
@@ -386,6 +396,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     //get the current rate of a particular coin
     app.post('/coinjolt-api/api/user/cur-rate', async (req, res) => {
         const currency_id = req.body.currency_id;
+        var currency_code;
         currency_details = await Currency.findAll({
             where: {
                 id: currency_id
@@ -395,10 +406,14 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         currency_code = currency_code.toUpperCase();
         var response = request('GET','https://coincap.io/page/' + currency_code);
         let data = JSON.parse(response.body);
-        coin_rate = data.price_usd;
+
+        coin_rate = data.price_usd.toString().split(".");
+        coin_rate[0] = coin_rate[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        new_rate = coin_rate.join(".");
+
         res.json({
             code: "200",
-            data: coin_rate
+            data: new_rate
         });
     });
 
@@ -631,7 +646,9 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //get all coin data,graph data for chart from API
-    app.post('/coinjolt-api/api/user/coin-chart-data/', (req,res) => {
+
+    app.post('/coinjolt-api/api/user/coin-chart-data', (req,res) => {
+
         var newTempArr = [];
         var response = request('GET','https://api.coinmarketcap.com/v2/ticker/');
         var result = JSON.parse(response.body);
