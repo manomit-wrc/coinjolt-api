@@ -297,7 +297,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
                 }
                 user_recent_trans_arr.push({
                     name: result[0][i].User.first_name + " " + result[0][i].User.last_name,
-                    amount: result[0][i].amount,
+                    amount: parseFloat(result[0][i].amount).toFixed(2),
                     type: type_name
                 });
             }
@@ -317,7 +317,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
                 }
                 user_weekly_trans_arr.push({
                     name: result[1][j].User.first_name + " " + result[1][j].User.last_name,
-                    amount: result[1][j].amount,
+                    amount: parseFloat(result[1][j].amount).toFixed(2),
                     type: type_name
                 });
             }
@@ -331,7 +331,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
     });
 
     //coinwise balance
-    app.post('/coinjolt-api/api/user/coinwise-balance/', passport.authenticate('jwt',{session: false}), async (req, res) => {
+    app.post('/coinjolt-api/api/user/coinwise-balance', passport.authenticate('jwt',{session: false}), async (req, res) => {
         currency_balance.belongsTo(Currency,{foreignKey: 'currency_id'});
         var currencyBalance = await currency_balance.findAll({
             where: {
@@ -341,25 +341,29 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
                 model: Currency
             }]
         });
-        var usdPrice = 0, balance = 0, coin_rate = 0;
+        var usdPrice = 0, balance = 0, coin_rate = 0, usd_price = 0, new_balance = 0, new_usdPrice = 0;
         var currencyArr = [];
         var response_image = request('GET','https://www.cryptocompare.com/api/data/coinlist/');
         let data_for_image = JSON.parse(response_image.body);
         for (var i = 0; i < currencyBalance.length; i++) {
-            // balance = currencyBalance[i].balance;
-            balance = currencyBalance[i].balance.toString().split(".");
+
+            balance = (parseFloat(currencyBalance[i].balance).toFixed(2)).toString().split(".");
             balance[0] = balance[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             new_balance = balance.join(".");
 
             var response = request('GET','https://coincap.io/page/' + currencyBalance[i].Currency.currency_id);
             let data = JSON.parse(response.body);
 
-            coin_rate = data.price_usd.toString().split(".");
+            usd_price = parseFloat(data.price_usd).toFixed(2);
+            coin_rate = usd_price.toString().split(".");
             coin_rate[0] = coin_rate[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             new_rate = coin_rate.join(".");
 
-            usdPrice = (parseFloat(new_rate) * parseFloat(balance)).toFixed(2);
-            currencyBalance[i].Currency.usdPrice = usdPrice;
+            usdPrice = ((usd_price * new_balance).toFixed(2)).toString().split(".");
+            usdPrice[0] = usdPrice[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            new_usdPrice = usdPrice.join(".");
+
+            currencyBalance[i].Currency.usdPrice = new_usdPrice;
 
             //GET IMAGE LINK FROM API           
             var image_code = currencyBalance[i].Currency.currency_id;           
@@ -367,7 +371,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             //END
 
             currencyArr.push({
-                usdPrice: usdPrice.toString(),
+                usdPrice: new_usdPrice.toString(),
                 balance: new_balance,
                 id: currencyBalance[i].id,
                 currency_id: currencyBalance[i].currency_id,
@@ -415,7 +419,8 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
         var response = request('GET','https://coincap.io/page/' + currency_code);
         let data = JSON.parse(response.body);
 
-        coin_rate = data.price_usd.toString().split(".");
+        var usd_price = parseFloat(data.price_usd).toFixed(2);
+        coin_rate = usd_price.toString().split(".");
         coin_rate[0] = coin_rate[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         new_rate = coin_rate.join(".");
 
@@ -672,7 +677,7 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             var graphDataArr = [];
             var coin_symbol = tempArr[i].symbol;
 
-            var todays_usd_price = tempArr[i].quotes.USD.price.toString().split(".");
+            var todays_usd_price = (parseFloat(tempArr[i].quotes.USD.price).toFixed(2)).toString().split(".");
             todays_usd_price[0] = todays_usd_price[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             new_todays_usd_price = todays_usd_price.join(".");
 
