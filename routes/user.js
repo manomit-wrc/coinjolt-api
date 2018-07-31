@@ -363,10 +363,10 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             usdPrice[0] = usdPrice[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             new_usdPrice = usdPrice.join(".");
 
-            if(new_usdPrice != ''){
-                new_usdPrice = new_usdPrice;
-            }else{
+            if(isNaN(new_usdPrice)){
                 new_usdPrice = "0.0";
+            }else{
+                new_usdPrice = new_usdPrice;
             }
 
             currencyBalance[i].Currency.usdPrice = new_usdPrice;
