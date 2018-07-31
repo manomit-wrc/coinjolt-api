@@ -363,6 +363,12 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             usdPrice[0] = usdPrice[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             new_usdPrice = usdPrice.join(".");
 
+            if(new_usdPrice != ''){
+                new_usdPrice = new_usdPrice;
+            }else{
+                new_usdPrice = "0.0";
+            }
+
             currencyBalance[i].Currency.usdPrice = new_usdPrice;
 
             //GET IMAGE LINK FROM API           
@@ -684,9 +690,9 @@ module.exports = (app, passport, User, Currency, Deposit, currency_balance, AWS)
             var percent_change_7d = tempArr[i].quotes.USD.percent_change_7d;
             var change_7d_amount = (Math.abs((tempArr[i].quotes.USD.price * tempArr[i].quotes.USD.percent_change_7d) / 100)).toFixed(2);
 
-            // var resp = request('GET', 'https://min-api.cryptocompare.com/data/histohour?fsym='+coin_symbol+'&tsym=USD&limit=5000&aggregate=3&e=CCCAGG');
-            
-            var resp = request('GET', 'https://min-api.cryptocompare.com/data/histominute?fsym='+coin_symbol+'&tsym=USD&limit=5000&aggregate=3&e=CCCAGG');
+            var resp = request('GET', 'https://min-api.cryptocompare.com/data/histohour?fsym='+coin_symbol+'&tsym=USD&limit=5000&aggregate=3&e=CCCAGG');
+
+            // var resp = request('GET', 'https://min-api.cryptocompare.com/data/histominute?fsym='+coin_symbol+'&tsym=USD&limit=5000&aggregate=3&e=CCCAGG');
             var result_data = JSON.parse(resp.body);
 
             for(var j = 0; j < result_data.Data.length; j++){
